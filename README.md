@@ -4,7 +4,7 @@ This repository consists of different simulation techniques and Bayesian Inferen
 
 ## Main topics
 
-[**1. Simulation techniques**]()
+[**1. Simulation techniques**](https://github.com/chrisyifanjin/Bayesian-Econometrics/tree/master/Simulation-Methods)
 
 [**2. Simulating critical values: Power and size studies**]()
 

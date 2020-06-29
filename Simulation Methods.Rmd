@@ -1,0 +1,143 @@
+---
+title: "Simulation methods"
+author: "Yifan Jin"
+date: "28/06/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# install.packages("matlab")
+library(matlab)
+```
+
+# 1. Transformation methods
+
+## Theory
+If U uniformly distributed on (0,1), then 3U+5 is uniform on (5,8).
+
+If Z is standard normal, then u+\( \sigma \)Z is a normal distribution with mean u and variance \( \sigma^2\) 
+
+Sum of squared normals is chi-squared disrtibution with df=number of normals
+
+```{r}
+set.seed(999)
+S=10000
+3*runif(1)+5 #This gives the draw from U(5,8)
+```
+
+```{r}
+v=3*runif(S)+5 #10000 draws from U(5,8)
+hist(v)
+```
+
+```{r}
+# from N(0,1) to N(-3,2^2)
+x=2*rnorm(S)-3
+hist(x)
+```
+
+```{r}
+z=matrix(rnorm(S*8),nrow=S,ncol=8)
+y=matrix(rowSums(z^2),nrow = S)
+hist(y)
+```
+
+```{r}
+# multivariate normal
+mu=matrix(c(-3,1),nrow=2)
+sigma=matrix(c(1,0.8,0.8,1),nrow=2)
+
+x=ones(S,1)%*%t(mu)+matrix(rnorm(S*2),nrow = S)*diag(sigma)
+```
+
+# 2. The inverse CDF method
+
+## Theory
+A very general technique for transforming from standard uniform to the distribution with cdf F is simply to compute inverse of F(u).
+\( F^{-1}(u)=\inf \{x \mid F(x) \geq u\} \)
+```{r}
+# exponential case
+e=-7*log(1-runif(S))
+hist(e)
+```
+
+# 3. Acceptance/rejection rule
+## Theory
+We wish to draw from a distribution F with density f but need to draw from an auxiliary distribution G with density g instead. The only requirement on G is that there exists a known and finite number c such that \(f(x) \leq c \cdot g(x) \text { for all } x \in \mathcal{D}\)
+
+Sample y from G and u from \(U(0,1)\). If u  \(u\leq \frac{f(y)}{c \cdot g(y)}\), define x=y ("accept") and stop; otherwise, ignore whatever happened so far ("reject") and start all over
+```{r}
+# Truncated normal, [-1,2], using acceptance/rejection rule and standard normal g
+x=zeros(S,1)
+count=0
+for (i in 1:S){
+  done=0
+  while (done==0){
+    y=rnorm(1)
+    count=count+1
+    if (y>-1&y<2){
+      x[i]=y
+      done=1}
+  }
+}
+hist(x)
+count
+```
+
+# 4. Antithetic acceleration
+
+## Theory 
+*Variance reduction*: \( Var(\frac{1}{2}\left(\hat{\theta}_{1}+\hat{\theta}_{2}\right))=\frac{1}{4} \sigma^{2}+\frac{1}{4} \sigma^{2}+2 \cdot \frac{1}{4} \rho \sigma^{2}=\frac{\sigma^{2}}{2}(1+\rho)\)
+
+*Antithetic acceleration*: \(\frac{1}{2}\left(\frac{1}{S} \sum_{s=1}^{S} v\left(x^{(s)}\right)+\frac{1}{S} \sum_{s=1}^{S} v\left(x^{*(s)}\right)\right)\)
+```{r}
+howmany=100
+u=matrix(runif(S*howmany),nrow = S,ncol=howmany)
+e=-7*log(1-u)
+theta=colMeans(e)
+mean(theta)
+std(theta)
+# Using twice as many draws decreases the standard error by a factor of sqrt(2)
+u_more=matrix(runif(S*howmany),nrow=S,ncol=howmany)
+e_more=-7*log(1-u_more)
+dim(e_more)
+e_double=matrix(c(e,e_more),nrow = 2*S,ncol=howmany)
+theta_double=colMeans(e_double)
+std(theta_double)
+```
+
+```{r}
+#But now we don't need double size of draws
+# antithetic acceleration perform better
+e_star=-7*log(u)
+e_anti=(e+e_star)/2
+theta_anti=colMeans(e_anti)
+std(theta_anti)
+```
+
+# 5.Importance sampling
+
+## Theory
+We are trying to estimate \(\int v(x) f(x) d x\)/.
+Because f(x) is a density function so \(\int f(x) d x=1\)
+
+Therefore, \(\int v(x) f(x) d x=\frac{\int v(x) f(x) d x}{\int f(x) d x}=\frac{\int v(x) \frac{f(x)}{g(x)} g(x) d x}{\int \frac{f(x)}{g(x)} g(x) d x}\).
+
+Define w=f/g. If X~G, then
+
+\(\int v(x) \frac{f(x)}{g(x)} g(x) d x=E[w(X) v(X)]\). 
+
+\(\int \frac{f(x)}{g(x)} g(x) d x=E[w(X)]\)
+By some Russian's probability limit law, we then find \(\frac{\frac{1}{S} \sum_{s=1}^{S} w\left(x^{(s)}\right) v\left(x^{(s)}\right)}{\frac{1}{s} \sum_{s=1}^{S} w\left(x^{(s)}\right)} \rightarrow \frac{E[w(X) v(X)]}{E[w(X)]}\)
+```{r}
+x=matrix(-3*log(1-runif(S*howmany)),nrow = S,ncol = howmany)
+w=(exp(-x/7)/7)/(exp(-x/3)/3)
+ta_is=sum(w*x)/sum(w)
+mean(ta_is)
+std(ta_is)
+```
+

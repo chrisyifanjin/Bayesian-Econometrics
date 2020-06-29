@@ -18,7 +18,7 @@ This repository consists of different simulation techniques and Bayesian Inferen
 
 [**7. Nonparametric Regression**]()
 
-[**8. Bayesian analysis - Introduction; Monte Carlo integration]()
+[**8. Bayesian analysis - Introduction; Monte Carlo integration**]()
 
 [**9. Bayesian analysis - Linear regression**]()
 

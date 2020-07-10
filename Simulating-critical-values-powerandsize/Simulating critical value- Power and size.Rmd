@@ -1,0 +1,116 @@
+---
+title: 'Simulating critical values: Power and size studies'
+author: "Yifan Jin"
+date: "29/06/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r,message=FALSE}
+library(matlab)
+library(MASS)
+library(pracma)
+```
+
+
+```{r}
+set.seed(0)
+# A simple regression model, just to see that matrix inversion works
+betatrue=t(t(c(4,-9,7,0,-2)))
+x=cbind(ones(100,1),matrix(rnorm(100*4),nrow = 100,ncol = 4))
+y=x%*%betatrue+rnorm(100)
+betahat1=solve(t(x)%*%x)%*%t(x)%*%y
+```
+
+```{r}
+# ols estimator function
+olsreg=function(y,x){
+  betahat=mldivide(x,y)
+  e=y-x%*%betahat
+  n=size(x)[1]
+  k=size(x)[2] 
+  s2=as.numeric((t(e)%*%e)/(n-k)) 
+  varbeta=s2 * solve(t(x)%*%x) 
+  se_beta=sqrt(diag(varbeta)) 
+  tstat=betahat/se_beta 
+  cbind(betahat,se_beta,tstat)
+}
+olsreg(y,x)
+```
+
+```{r,warning=FALSE}
+# stationary AR studies
+ar1=function(rho,sigma,T,S){
+  epsilon=sigma*matrix(rnorm(T+1*S),nrow=T+1,ncol=S,byrow=T)
+  y=zeros(T+1,S)
+  y[1,]=epsilon[1,]
+  for(t in 1:T){
+    y[t+1,]=rho*y[t,]+epsilon[t+1,]
+  }
+  rhohat=zeros(S,1)
+  for(s in 1:S){
+    rhohat[s]=mldivide(y[1:T,s],y[2:(T+1),s],T)
+  }
+  mrh=mean(rhohat)
+  bias=mrh-rho
+  variance=mean((rhohat-mrh)^2)
+  MSE=mean((rhohat-rho)^2)
+  print(c(bias,variance,MSE))
+  hist(rhohat,breaks=20)
+  abline(v=c(mrh,rho),col=c("green","red"))
+}
+for (rho in c(0.8,1)){
+  for (T in c(25,50,100,200)){
+    for (sigma in c(0.5,1,2)){
+      c(print(c(rho,T,sigma)),ar1(rho,sigma,T,999))
+    }
+  }
+}
+```
+
+```{r,warning=FALSE}
+# non-stationary AR(1) model
+# df test
+S=99999
+dftest=function(T,alpha,S){
+  epsilon=matrix(rnorm(T+1*S),nrow = T+1,ncol=S,byrow = T)
+  y=zeros(T+1,S)
+  y[1,]=epsilon[1,]
+  for (t in 1:T){
+    y[t+1,]=y[t,]+epsilon[t+1,]
+  }
+  tstat=zeros(S,1)
+  for (s in 1:S){
+    ols=olsreg(t(t(y[2:(T+1),s])),t(t(y[1:T,s])))
+    rhohat=ols[1]
+    se=ols[2]
+    wrong_t=ols[3]
+    tstat[s]=(rhohat-1)/se
+  }
+  tsort=sort(tstat)
+  cv_sim=tsort[round(alpha*(S+1))]
+  cv_naive=qt(alpha,T-1)
+  
+  num_rej=sum(tstat<cv_naive)
+  sz_naive=num_rej/S
+  print(c(T,alpha,cv_sim,cv_naive,sz_naive))
+  hist(tstat,breaks=50)
+  abline(v=c(cv_sim,cv_naive),col=c("green","red"))
+}
+```
+
+```{r,warning=FALSE}
+for (T in c(25,50,100,200)){
+  for (alpha in c(0.01,0.05,0.1)){
+    dftest(T,alpha,99999)
+  }
+}
+```
+
+
+
+
+

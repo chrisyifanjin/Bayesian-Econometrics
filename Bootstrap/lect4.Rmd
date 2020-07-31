@@ -1,0 +1,68 @@
+---
+title: "lecture04"
+author: "Yifan Jin"
+date: "20/04/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(matlab)
+library(bootstrap)
+library(readxl)
+bigcity <- read_excel("bigcity.xlsx", 
+    col_types = c("numeric", "numeric"), 
+    skip = 2)
+bigcity<-data.matrix(bigcity)
+```
+
+```{r}
+x=runif(5,0,1)
+theta<-function(x){
+  x
+}
+samples<-bootstrap(x,10,theta)$thetastar
+samples
+theta1<-function(x){
+  mean(x)
+}
+samples1<-bootstrap(x,10,theta1)$thetastar
+samples1
+samples2<-bootstrap(x,10000,theta1)$thetastar
+hist(samples2)
+samples3<-bootstrap(x,100000,theta1)$thetastar
+hist(samples3,breaks = 100)
+mean(x)
+```
+
+
+```{r}
+# The consistent ratio-of-means estimator
+gamma1<-mean(bigcity[,2])/mean(bigcity[,1])
+set.seed(0)
+n<-49
+mat<-function(x,bigcity){
+  (mean(bigcity[x,2]))/(mean(bigcity[x,1]))
+}
+gammals<-bootstrap(1:n,999,mat,bigcity)$thetastar
+gamma1
+hist(gammals)
+gamma2<-mean(bigcity[,2]/bigcity[,1])
+mat2<-function(q,bigcity){
+  mean(bigcity[q,2]/bigcity[q,1])
+}
+gamma2s=bootstrap(1:n,999,mat2,bigcity)$thetastar
+hist(gamma2s)
+```
+
+```{r}
+mg1<-mean(gammals)
+mg2<-mean(gamma2s)
+# estimated bias, variance and MSE, raw estimates, BC estimates
+```
+
+
+

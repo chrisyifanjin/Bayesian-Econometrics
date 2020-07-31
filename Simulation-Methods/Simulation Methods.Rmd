@@ -57,7 +57,8 @@ x=ones(S,1)%*%t(mu)+matrix(rnorm(S*2),nrow = S)*diag(sigma)
 # 2. The inverse CDF method
 
 ## Theory
-A very general technique for transforming from standard uniform to the distribution with cdf F is simply to compute inverse of F(u).
+A very general technique for transforming from standard uniform to the distribution with cdf F is simply to compute inverse of F(u) where U is a standard uniform distribution.
+
 \( F^{-1}(u)=\inf \{x \mid F(x) \geq u\} \)
 ```{r}
 # exponential case
